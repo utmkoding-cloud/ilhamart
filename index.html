@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ilhamart - Belanja Mudah Warga</title>
+    <style>
+        :root {
+            --primary: #27ae60;
+            --dark: #2c3e50;
+            --danger: #e74c3c;
+            --shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #f4f7f6; margin: 0; padding-bottom: 180px; }
+
+        header {
+            background: var(--primary); color: white;
+            padding: 1.5rem 1rem 3rem; text-align: center;
+            border-radius: 0 0 30px 30px;
+        }
+
+        .main-container { padding: 0 5%; }
+
+        /* Form Nama & Alamat */
+        .user-form {
+            background: white; border-radius: 15px; padding: 15px;
+            margin: -25px auto 15px; box-shadow: var(--shadow);
+            max-width: 600px;
+        }
+        .user-form input, .user-form textarea {
+            width: 100%; padding: 10px; margin-top: 8px;
+            border-radius: 8px; border: 1px solid #ddd; outline: none;
+        }
+
+        .search-area { margin: 10px auto; max-width: 600px; }
+        .search-area input {
+            width: 100%; padding: 15px 20px; border-radius: 25px;
+            border: none; box-shadow: var(--shadow); outline: none;
+        }
+
+        .catalog {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px; margin-top: 15px;
+        }
+
+        .card {
+            background: white; border-radius: 15px; padding: 12px;
+            box-shadow: var(--shadow); border: 1px solid #eee;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        .item-name { font-size: 0.9rem; font-weight: 600; margin: 5px 0; min-height: 2.5rem; }
+        .price { font-size: 1rem; font-weight: bold; color: var(--primary); margin-bottom: 10px; }
+
+        .counter {
+            display: flex; align-items: center; justify-content: space-between;
+            background: #f8f9fa; border-radius: 10px; padding: 5px;
+        }
+        .btn-qty {
+            background: var(--primary); color: white; border: none;
+            width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-weight: bold;
+        }
+        .qty-num { font-weight: bold; font-size: 0.9rem; }
+
+        /* Sticky Footer */
+        .cart-bar {
+            position: fixed; bottom: 0; width: 100%;
+            background: white; padding: 15px 5%;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.1); z-index: 1000;
+        }
+        
+        .cart-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .action-btns { display: flex; gap: 10px; }
+        
+        .btn-wa {
+            flex: 2; background: #25d366; color: white; border: none;
+            padding: 12px; border-radius: 12px; font-weight: bold;
+            display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; cursor: pointer;
+        }
+
+        .btn-reset {
+            flex: 1; background: #eee; color: var(--danger); border: none;
+            padding: 12px; border-radius: 12px; font-weight: bold; cursor: pointer;
+        }
+
+        @media (min-width: 768px) {
+            .catalog { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 style="margin:0; font-size: 1.8rem;">Ilhamart</h1>
+        <p style="margin:5px 0 0; opacity:0.9; font-size: 0.85rem;">Solusi Belanja Praktis</p>
+    </header>
+
+    <div class="main-container">
+        <div class="user-form">
+            <label style="font-size: 0.8rem; font-weight: bold; color: var(--dark);">Data Pengiriman:</label>
+            <input type="text" id="userName" placeholder="Nama Lengkap Anda">
+            <textarea id="userAddress" rows="2" placeholder="Alamat Lengkap (Blok/No Rumah)"></textarea>
+        </div>
+
+        <div class="search-area">
+            <input type="text" id="searchInput" onkeyup="filterApp()" placeholder="Cari barang...">
+        </div>
+
+        <div class="catalog" id="catalogList"></div>
+    </div>
+
+    <div class="cart-bar">
+        <div class="cart-info">
+            <div>
+                <div id="count-info" style="font-size: 0.75rem; color: #777;">Keranjang Kosong</div>
+                <div id="total-info" style="font-size: 1.2rem; font-weight: bold;">Rp 0</div>
+            </div>
+        </div>
+        <div class="action-btns">
+            <button class="btn-reset" onclick="resetCart()">Hapus</button>
+            <button class="btn-wa" onclick="sendWA()">📲 Pesan Sekarang</button>
+        </div>
+    </div>
+
+    <script>
+        const products = [
+            { id: 1, cat: 'SEMBAKO', name: 'Beras Putih 5kg', price: 75000 },
+            { id: 2, cat: 'SEMBAKO', name: 'Minyak Goreng 2L', price: 34000 },
+            { id: 3, cat: 'SEMBAKO', name: 'Gula Pasir 1kg', price: 17000 },
+            { id: 4, cat: 'SEMBAKO', name: 'Telur Ayam (kg)', price: 28000 },
+            { id: 5, cat: 'SEMBAKO', name: 'Tepung Terigu', price: 12000 },
+            { id: 6, cat: 'SEMBAKO', name: 'Garam Dapur', price: 3000 },
+            { id: 7, cat: 'SEMBAKO', name: 'Mentega/Margarin', price: 8500 },
+            { id: 8, cat: 'SEMBAKO', name: 'Susu Kental Manis', price: 12500 },
+            { id: 9, cat: 'SEMBAKO', name: 'Mie Instan', price: 3500 },
+            { id: 10, cat: 'SEMBAKO', name: 'Minyak Wijen', price: 25000 },
+            { id: 11, cat: 'BUMBU', name: 'Kecap Manis', price: 10000 },
+            { id: 12, cat: 'BUMBU', name: 'Saus Sambal', price: 8000 },
+            { id: 19, cat: 'BUMBU', name: 'Bawang Merah', price: 35000 },
+            { id: 20, cat: 'BUMBU', name: 'Bawang Putih', price: 30000 },
+            { id: 21, cat: 'MINUMAN', name: 'Kopi Bubuk', price: 15000 },
+            { id: 31, cat: 'MANDI', name: 'Sabun Mandi Batang', price: 4000 },
+            { id: 41, cat: 'RUMAH', name: 'Tisu Wajah', price: 10000 }
+            // (Tambahkan sisanya sampai 50 barang di sini)
+        ];
+
+        let cart = {};
+
+        function renderProducts(data) {
+            const list = document.getElementById('catalogList');
+            list.innerHTML = data.map(p => {
+                const qty = cart[p.id] ? cart[p.id].qty : 0;
+                return `
+                <div class="card">
+                    <div>
+                        <span style="font-size:0.6rem; color:#999">${p.cat}</span>
+                        <div class="item-name">${p.name}</div>
+                        <div class="price">Rp ${p.price.toLocaleString('id-ID')}</div>
+                    </div>
+                    <div class="counter">
+                        <button class="btn-qty" onclick="updateQty(${p.id}, -1)">-</button>
+                        <span class="qty-num" id="qty-${p.id}">${qty}</span>
+                        <button class="btn-qty" onclick="updateQty(${p.id}, 1)">+</button>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function updateQty(id, change) {
+            const product = products.find(p => p.id === id);
+            if (!cart[id]) cart[id] = { name: product.name, price: product.price, qty: 0 };
+            cart[id].qty += change;
+            if (cart[id].qty <= 0) delete cart[id];
+            
+            const qtyLabel = document.getElementById(`qty-${id}`);
+            if (qtyLabel) qtyLabel.innerText = cart[id] ? cart[id].qty : 0;
+            updateCartBar();
+        }
+
+        function updateCartBar() {
+            let totalItems = 0; let totalPrice = 0;
+            for (let id in cart) {
+                totalItems += cart[id].qty;
+                totalPrice += (cart[id].qty * cart[id].price);
+            }
+            document.getElementById('count-info').innerText = totalItems + " Barang";
+            document.getElementById('total-info').innerText = "Rp " + totalPrice.toLocaleString('id-ID');
+        }
+
+        function resetCart() {
+            if (confirm("Hapus semua?")) {
+                cart = {};
+                renderProducts(products);
+                updateCartBar();
+            }
+        }
+
+        function sendWA() {
+            const name = document.getElementById('userName').value;
+            const address = document.getElementById('userAddress').value;
+            let cartIds = Object.keys(cart);
+
+            if (!name || !address) return alert("Mohon isi Nama dan Alamat dulu ya!");
+            if (cartIds.length === 0) return alert("Keranjang belanja masih kosong!");
+
+            let phoneNumber = "6285922001425"; 
+            let totalPrice = 0;
+            let text = "*PESANAN BARU - ILHAMART*\n\n";
+            text += `👤 *Pembeli:* ${name}\n`;
+            text += `📍 *Alamat:* ${address}\n`;
+            text += "------------------------------------------\n";
+
+            cartIds.forEach(id => {
+                let subtotal = cart[id].qty * cart[id].price;
+                text += `• ${cart[id].name} (${cart[id].qty}x)\n  Subtotal: Rp${subtotal.toLocaleString('id-ID')}\n\n`;
+                totalPrice += subtotal;
+            });
+
+            text += "------------------------------------------\n";
+            text += `*TOTAL HARGA: Rp${totalPrice.toLocaleString('id-ID')}*\n\n`;
+            text += "Mohon segera dikonfirmasi pesanan saya, terima kasih.";
+
+            window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(text)}`);
+        }
+
+        function filterApp() {
+            let val = document.getElementById('searchInput').value.toLowerCase();
+            renderProducts(products.filter(p => p.name.toLowerCase().includes(val)));
+        }
+
+        renderProducts(products);
+    </script>
+</body>
+</html>
